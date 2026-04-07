@@ -1,0 +1,15 @@
+{
+  "name": "word-mvp-cf",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @word-mvp/api",
+    "dev:web": "npm run dev -w @word-mvp/web",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspaces"
+  }
+}
