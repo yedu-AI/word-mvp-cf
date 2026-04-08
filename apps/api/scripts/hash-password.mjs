@@ -1,6 +1,8 @@
 import { webcrypto } from "node:crypto";
 
-globalThis.crypto = webcrypto;
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
 
 const ITERATIONS = 120000;
 const KEY_LENGTH = 32;
