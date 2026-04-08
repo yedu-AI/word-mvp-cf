@@ -49,6 +49,13 @@ curl -X POST http://127.0.0.1:8787/api/words/1/feedback \
 3. 远端 D1 数据库名（默认 `word_mvp`，可改）
 4. GitHub 仓库名（`org/repo`）
 
+Token 建议最小权限：
+- Account: `Cloudflare Workers Scripts:Edit`
+- Account: `D1:Edit`
+- Account: `Pages:Edit`
+- Account: `Workers KV Storage:Edit`（可选，后续若用）
+- User: `Memberships:Read`
+
 ## 6. 远端部署顺序（脚本化执行）
 1. 创建 D1 数据库：`wrangler d1 create word_mvp`
 2. 更新 `apps/api/wrangler.toml` 中 `database_id`
