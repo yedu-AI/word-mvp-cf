@@ -2,11 +2,8 @@
 main = "src/index.ts"
 compatibility_date = "2026-04-07"
 
-[vars]
-JWT_SECRET = "replace-with-strong-secret"
-
 [[d1_databases]]
 binding = "DB"
 database_name = "word_mvp"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "957171f3-2ccb-4b1b-b534-fe4ca300e5d1"
 migrations_dir = "migrations"
