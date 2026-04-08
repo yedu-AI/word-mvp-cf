@@ -61,7 +61,18 @@ Token 建议最小权限：
 2. 更新 `apps/api/wrangler.toml` 中 `database_id`
 3. 执行远端迁移：`npm run drizzle:migrate:remote -w @word-mvp/api`
 4. 部署 API：`npm run deploy -w @word-mvp/api`
-5. 部署 Web 到 Pages（可用 `wrangler pages` 或 GitHub Actions）
+5. 部署 Web 到 Pages（推荐 Cloudflare Pages 原生 GitHub 集成）
+
+## 8. Pages 原生 GitHub 集成（推荐）
+1. 进入 Cloudflare Dashboard -> Workers & Pages -> Create -> Pages -> Connect to Git.
+2. 选择 GitHub 仓库：`yedu-AI/word-mvp-cf`。
+3. 构建配置：
+   - Build command: `npm run build -w @word-mvp/web`
+   - Build output directory: `apps/web/dist`
+   - Root directory: `/`
+4. 环境变量：
+   - `VITE_API_BASE`: Worker 线上地址（例如 `https://word-mvp-api.<subdomain>.workers.dev`）
+5. 将 `main` 设为 Production branch，开启 Preview deployments。
 
 ## 7. 安全提醒
 - 你在对话里发过 GitHub Token，建议尽快在 GitHub 里撤销并新建一个 token 再用于自动化。

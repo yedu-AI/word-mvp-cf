@@ -10,9 +10,20 @@
 3. `npm run dev:web`
 
 ## Auto Deploy
-- Web app deploys to GitHub Pages on every push to `main` that touches `apps/web`.
+- Web app deploys via Cloudflare Pages native GitHub integration.
 - API deploys to Cloudflare Workers on every push to `main` that touches `apps/api`.
 
 ### Required GitHub Secrets
 - `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Workers deploy permission.
 - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account id.
+
+## Cloudflare Pages Native GitHub Setup
+1. Cloudflare Dashboard -> Workers & Pages -> Create -> Pages -> Connect to Git.
+2. Choose repository: `yedu-AI/word-mvp-cf`.
+3. Build settings:
+   - Framework preset: `Vite`
+   - Build command: `npm run build -w @word-mvp/web`
+   - Build output directory: `apps/web/dist`
+   - Root directory: `/`
+4. Environment variable:
+   - `VITE_API_BASE`: your Worker API URL
