@@ -1,78 +1,65 @@
-# Cloudflare 部署与手动 API 执行手册
+﻿# Cloudflare 部署与回归手册（平台/基建）
 
-## 1. 已完成基线
-- `apps/api`: Cloudflare Workers + Hono + D1（已含首版迁移与接口骨架）
-- `apps/web`: React + Vite（Cloudflare Pages 可部署）
-- D1 初始迁移：`apps/api/migrations/0001_init.sql`
+## 1. 目标与接口约束
+- 保持接口兼容：
+  - `POST /api/auth/login`
+  - `GET /health`
+- 登录必须使用 `users.password_hash`（PBKDF2）进行校验，不允许明文比对。
 
-## 2. 本地启动
-1. 安装依赖：`npm install`
-2. 执行本地 D1 迁移：`npm run drizzle:migrate:local -w @word-mvp/api`
-3. 启动 API：`npm run dev:api`
-4. 启动 Web：`npm run dev:web`
+## 2. 本地准备
+```bash
+npm install
+npm run typecheck
+```
 
-## 3. 初始化测试账号（本地 D1）
-1. 生成密码哈希：
+## 3. 初始化或更新本地 D1
+1. 应用迁移：
+```bash
+npm run drizzle:migrate:local -w @word-mvp/api
+```
+2. 回放稳定性检查（连续执行两次迁移并检查表结构）：
+```powershell
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/25-verify-d1-replay.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
+```
+
+## 4. 生成安全密码哈希并写入测试账号
+1. 生成哈希：
 ```bash
 npm run password:hash -w @word-mvp/api -- Admin123!
 ```
-2. 将输出哈希替换到 SQL 里并执行：
+2. 将输出替换 `<HASH>` 后执行：
 ```bash
 cd apps/api
-wrangler d1 execute word_mvp --local --command "INSERT INTO users (id, username, password_hash, role, created_at) VALUES ('u_admin','admin','<HASH>','admin', strftime('%s','now') * 1000);"
+wrangler d1 execute word_mvp --local --command "INSERT OR REPLACE INTO users (id, username, password_hash, role, created_at) VALUES ('u_admin','admin','<HASH>','admin',strftime('%s','now')*1000);"
 ```
 
-## 4. 手动 API 调试（本地）
-1. 登录：
+## 5. 本地接口验证（健康检查 + 鉴权）
 ```bash
-curl -X POST http://127.0.0.1:8787/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"Admin123!\"}"
+npm run verify:auth -w @word-mvp/api
 ```
-2. 拉取今日任务（替换 TOKEN）：
-```bash
-curl http://127.0.0.1:8787/api/tasks/today \
-  -H "Authorization: Bearer TOKEN"
+默认访问 `http://127.0.0.1:8787`，可通过环境变量覆盖：
+- `API_BASE`
+- `AUTH_USERNAME`
+- `AUTH_PASSWORD`
+
+## 6. Cloudflare 一键化部署顺序
+```powershell
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/00-precheck.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/10-bootstrap.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/20-provision-cloudflare.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/30-connect-pages.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/40-verify.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json
 ```
-3. 提交单词反馈（替换 TOKEN）：
-```bash
-curl -X POST http://127.0.0.1:8787/api/words/1/feedback \
-  -H "Authorization: Bearer TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"result\":\"know\"}"
+
+说明：
+- `20-provision-cloudflare.ps1` 在部署后会主动轮询 `GET /health`，未通过则失败。
+- `40-verify.ps1` 会验证登录成功、错误密码失败（401）、非法载荷失败（400）。
+- 若只验证 Worker，可执行：
+```powershell
+powershell -ExecutionPolicy Bypass -File ./ai-ops-kit/scripts/40-verify.ps1 -ConfigPath ./ai-ops-kit/project.config.example.json -SkipWebCheck
 ```
 
-## 5. Cloudflare 远端配置（你提供后我继续执行）
-需要你提供：
-1. `CLOUDFLARE_ACCOUNT_ID`
-2. `CLOUDFLARE_API_TOKEN`（Workers + D1 + Pages 权限）
-3. 远端 D1 数据库名（默认 `word_mvp`，可改）
-4. GitHub 仓库名（`org/repo`）
-
-Token 建议最小权限：
-- Account: `Cloudflare Workers Scripts:Edit`
-- Account: `D1:Edit`
-- Account: `Pages:Edit`
-- Account: `Workers KV Storage:Edit`（可选，后续若用）
-- User: `Memberships:Read`
-
-## 6. 远端部署顺序（脚本化执行）
-1. 创建 D1 数据库：`wrangler d1 create word_mvp`
-2. 更新 `apps/api/wrangler.toml` 中 `database_id`
-3. 执行远端迁移：`npm run drizzle:migrate:remote -w @word-mvp/api`
-4. 部署 API：`npm run deploy -w @word-mvp/api`
-5. 部署 Web 到 Pages（推荐 Cloudflare Pages 原生 GitHub 集成）
-
-## 8. Pages 原生 GitHub 集成（推荐）
-1. 进入 Cloudflare Dashboard -> Workers & Pages -> Create -> Pages -> Connect to Git.
-2. 选择 GitHub 仓库：`yedu-AI/word-mvp-cf`。
-3. 构建配置：
-   - Build command: `npm run build -w @word-mvp/web`
-   - Build output directory: `apps/web/dist`
-   - Root directory: `/`
-4. 环境变量：
-   - `VITE_API_BASE`: Worker 线上地址（例如 `https://word-mvp-api.<subdomain>.workers.dev`）
-5. 将 `main` 设为 Production branch，开启 Preview deployments。
-
-## 7. 安全提醒
-- 你在对话里发过 GitHub Token，建议尽快在 GitHub 里撤销并新建一个 token 再用于自动化。
+## 7. 常见失败点
+- `wrangler whoami` 失败：先执行 `npx wrangler login`
+- `gh auth` 缺失：执行 `gh auth login`，或在 Pages 连接步骤显式传 `-OwnerId`/`-RepoId`
+- 登录 401：检查 `users.password_hash` 是否为 `pbkdf2$...` 格式，而非明文

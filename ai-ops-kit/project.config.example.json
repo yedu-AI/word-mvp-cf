@@ -1,0 +1,29 @@
+{
+  "projectName": "word-mvp-cf",
+  "git": {
+    "owner": "yedu-AI",
+    "repo": "word-mvp-cf",
+    "defaultBranch": "main"
+  },
+  "cloudflare": {
+    "accountId": "63ff41a29766e112f4cee613862403e8",
+    "workerName": "word-mvp-api",
+    "pagesProject": "word-mvp-cf-git",
+    "d1Name": "word_mvp"
+  },
+  "build": {
+    "command": "npm run build -w @word-mvp/web",
+    "outputDir": "apps/web/dist",
+    "rootDir": "/"
+  },
+  "app": {
+    "apiBaseEnvName": "VITE_API_BASE"
+  },
+  "verify": {
+    "webUrl": "https://word-mvp-cf-git.pages.dev",
+    "apiUrl": "https://word-mvp-api.liuang876.workers.dev",
+    "username": "admin",
+    "password": "Admin123!"
+  }
+}
+

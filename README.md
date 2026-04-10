@@ -27,3 +27,9 @@
    - Root directory: `/`
 4. Environment variable:
    - `VITE_API_BASE`: your Worker API URL
+
+## Reusable Assets
+- Human guide: `docs/HUMAN_PLAYBOOK.md`
+- Quick checklist: `docs/HUMAN_CHECKLIST.md`
+- Business flow (beginner): `docs/BUSINESS_FLOW_FOR_BEGINNER.md`
+- AI ops assets: `ai-ops-kit/README.md`

@@ -1,0 +1,27 @@
+{
+  "projectName": "replace-me",
+  "updatedAt": "",
+  "git": {
+    "owner": "replace-me",
+    "repo": "replace-me",
+    "defaultBranch": "main"
+  },
+  "cloudflare": {
+    "accountId": "replace-me",
+    "workerName": "replace-me-api",
+    "workerUrl": "",
+    "pagesProject": "replace-me-web",
+    "pagesUrl": "",
+    "d1Name": "replace_me",
+    "d1DatabaseId": ""
+  },
+  "status": {
+    "precheck": "pending",
+    "bootstrap": "pending",
+    "provision": "pending",
+    "pagesConnect": "pending",
+    "verify": "pending"
+  },
+  "notes": []
+}
+
