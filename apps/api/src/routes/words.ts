@@ -1,6 +1,7 @@
-﻿import { Hono } from "hono";
+import { Hono } from "hono";
 import { z } from "zod";
-import { nextReviewAt, nextStage, type FeedbackResult } from "../lib/review";
+import type { FeedbackResult } from "../services/review-engine";
+import { submitWordFeedback } from "../services/review-records";
 import type { Bindings, Variables } from "../types";
 
 const feedbackSchema = z.object({
@@ -24,31 +25,19 @@ wordsRoutes.post("/:wordId/feedback", async (c) => {
 
   const now = Date.now();
   const result = parsed.data.result as FeedbackResult;
+  const submitted = await submitWordFeedback(c.env.DB, {
+    userId,
+    wordId,
+    result,
+    nowMs: now
+  });
 
-  const existing = await c.env.DB.prepare(
-    "SELECT first_learned_at, review_stage FROM learning_records WHERE user_id = ? AND word_id = ? LIMIT 1"
-  )
-    .bind(userId, wordId)
-    .first<{ first_learned_at: number; review_stage: number }>();
-
-  const currentStage = existing?.review_stage ?? 0;
-  const updatedStage = nextStage(currentStage, result);
-  const nextAt = nextReviewAt(updatedStage, now);
-  const firstLearnedAt = existing?.first_learned_at ?? now;
-
-  await c.env.DB.prepare(
-    `INSERT INTO learning_records (user_id, word_id, first_learned_at, last_reviewed_at, review_stage, last_result, next_review_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(user_id, word_id) DO UPDATE SET
-       last_reviewed_at = excluded.last_reviewed_at,
-       review_stage = excluded.review_stage,
-       last_result = excluded.last_result,
-       next_review_at = excluded.next_review_at`
-  )
-    .bind(userId, wordId, firstLearnedAt, now, updatedStage, result, nextAt)
-    .run();
-
-  return c.json({ ok: true, reviewStage: updatedStage, nextReviewAt: nextAt });
+  return c.json({
+    ok: true,
+    deduped: submitted.deduped,
+    reviewStage: submitted.reviewStage,
+    nextReviewAt: submitted.nextReviewAt
+  });
 });
 
 export default wordsRoutes;
