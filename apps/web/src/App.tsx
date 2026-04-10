@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8787";
+const FLOW_STEPS = ["登录账号", "领取今日任务", "复习词卡", "学习新词", "阅读与测验"] as const;
 
 type FeedbackResult = "know" | "vague" | "unknown";
 
@@ -128,6 +129,13 @@ export default function App() {
 
   const currentCard = cardQueue[currentIndex] ?? null;
   const inReviewPhase = currentIndex < (task?.reviewQueue.length ?? 0);
+  const activeFlowIndex = resolveFlowIndex({
+    token,
+    task,
+    studyMode,
+    hasCurrentCard: Boolean(currentCard),
+    inReviewPhase
+  });
 
   async function loadTodayTask(authToken = token): Promise<void> {
     if (!authToken) {
@@ -249,10 +257,35 @@ export default function App() {
   const reviewCount = task?.reviewWords ?? 0;
   const newCount = task?.newWords ?? 0;
   const readingStatusLabel = task?.readingStatus === "done" ? "已完成" : "未完成";
+  const reviewQueueCount = task?.reviewQueue.length ?? 0;
+  const newQueueCount = task?.newQueue.length ?? 0;
+  const canStartStudy = Boolean(task && cardQueue.length > 0);
 
   return (
     <main className="container">
-      <h1>学员学习流程</h1>
+      <header className="hero">
+        <p className="eyebrow">Word Flow</p>
+        <h1>极简背词学习站</h1>
+      </header>
+
+      <section className="panel flow-panel">
+        <h2>业务流程</h2>
+        <ol className="flow-rail">
+          {FLOW_STEPS.map((step, index) => (
+            <li
+              key={step}
+              className={`flow-step ${index < activeFlowIndex ? "is-complete" : ""} ${
+                index === activeFlowIndex ? "is-active" : ""
+              }`}
+            >
+              <span className="flow-index">{index + 1}</span>
+              <span className="flow-text">{step}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="hint">流程固定：先复习，再新词，最后阅读与 5 题测验。</p>
+      </section>
+
       <p className="message">{message}</p>
 
       <section className="panel">
@@ -296,9 +329,11 @@ export default function App() {
             <strong>{readingStatusLabel}</strong>
           </div>
         </div>
-        <p className="hint">学习顺序固定：先复习，再新词。</p>
+        <p className="hint">
+          今日词卡 {cardQueue.length} 张（复习 {reviewQueueCount} + 新词 {newQueueCount}）
+        </p>
         <div className="actions single">
-          <button onClick={startStudy} disabled={!task || cardQueue.length === 0}>
+          <button onClick={startStudy} disabled={!canStartStudy}>
             进入卡片学习
           </button>
         </div>
@@ -318,18 +353,20 @@ export default function App() {
                 </button>
               </div>
 
-              <button className={`card ${flipped ? "is-flipped" : ""}`} onClick={() => setFlipped((v) => !v)}>
-                <div className="card-face card-front">
-                  <div className="word">{currentCard.word}</div>
-                  <div className="phonetic">{currentCard.phonetic ?? ""}</div>
-                  <div className="tap-tip">点击翻转查看释义</div>
-                </div>
-                <div className="card-face card-back">
-                  <div className="meaning">{currentCard.cnMeaning}</div>
-                  <div className="example">{currentCard.example ?? "暂无例句"}</div>
-                  <div className="tap-tip">再次点击可翻回</div>
-                </div>
-              </button>
+              <div className="card-shell">
+                <button className={`card ${flipped ? "is-flipped" : ""}`} onClick={() => setFlipped((v) => !v)}>
+                  <div className="card-face card-front">
+                    <div className="word">{currentCard.word}</div>
+                    <div className="phonetic">{currentCard.phonetic ?? ""}</div>
+                    <div className="tap-tip">点击翻转查看释义与例句</div>
+                  </div>
+                  <div className="card-face card-back">
+                    <div className="meaning">{currentCard.cnMeaning}</div>
+                    <p className="example">{currentCard.example ?? "No example available."}</p>
+                    <div className="tap-tip">再次点击翻回单词面</div>
+                  </div>
+                </button>
+              </div>
 
               <div className="feedback-actions">
                 <button disabled={submitting} onClick={() => submitFeedback("know")}>
@@ -359,4 +396,20 @@ function feedbackLabel(result: FeedbackResult): string {
   if (result === "know") return "认识";
   if (result === "vague") return "模糊";
   return "不认识";
+}
+
+function resolveFlowIndex(params: {
+  token: string;
+  task: TodayTask | null;
+  studyMode: boolean;
+  hasCurrentCard: boolean;
+  inReviewPhase: boolean;
+}): number {
+  if (!params.token) return 0;
+  if (!params.task) return 1;
+  if (!params.studyMode) {
+    return params.task.readingStatus === "done" ? 4 : 1;
+  }
+  if (!params.hasCurrentCard) return 4;
+  return params.inReviewPhase ? 2 : 3;
 }
