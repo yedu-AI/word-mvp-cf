@@ -19,7 +19,8 @@ function fromBase64(value: string): Uint8Array {
 }
 
 async function deriveHash(password: string, salt: Uint8Array, iterations = ITERATIONS): Promise<Uint8Array> {
-  const saltBuffer = Uint8Array.from(salt).buffer;
+  const saltCopy = Uint8Array.from(salt);
+  const saltBuffer = saltCopy.buffer.slice(saltCopy.byteOffset, saltCopy.byteOffset + saltCopy.byteLength);
   const keyMaterial = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), { name: "PBKDF2" }, false, ["deriveBits"]);
   const bits = await crypto.subtle.deriveBits(
     { name: "PBKDF2", hash: "SHA-256", salt: saltBuffer, iterations },
@@ -50,8 +51,15 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const iterations = Number(iterStr);
   if (!Number.isFinite(iterations) || iterations < 1000) return false;
 
-  const salt = fromBase64(saltB64);
-  const expected = fromBase64(hashB64);
+  let salt: Uint8Array;
+  let expected: Uint8Array;
+  try {
+    salt = fromBase64(saltB64);
+    expected = fromBase64(hashB64);
+  } catch {
+    return false;
+  }
+
   const calculated = await deriveHash(password, salt, iterations);
   return timingSafeEqual(calculated, expected);
 }
