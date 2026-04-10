@@ -1,6 +1,8 @@
-﻿import { Hono } from "hono";
+import { Hono } from "hono";
 import { cors } from "hono/cors";
 import authRoutes from "./routes/auth";
+import quizRoutes from "./routes/quiz";
+import readingRoutes from "./routes/reading";
 import tasksRoutes from "./routes/tasks";
 import wordsRoutes from "./routes/words";
 import { verifyJwt } from "./lib/jwt";
@@ -37,5 +39,7 @@ app.use("/api/*", async (c, next) => {
 
 app.route("/api/tasks", tasksRoutes);
 app.route("/api/words", wordsRoutes);
+app.route("/api/reading", readingRoutes);
+app.route("/api/quiz", quizRoutes);
 
 export default app;
