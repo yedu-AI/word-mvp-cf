@@ -1,6 +1,7 @@
 ﻿import { Hono } from "hono";
 import { z } from "zod";
 import { issueJwt } from "../lib/jwt";
+import { verifyPassword } from "../lib/password";
 import type { Bindings } from "../types";
 
 const loginSchema = z.object({
@@ -9,6 +10,7 @@ const loginSchema = z.object({
 });
 
 const authRoutes = new Hono<{ Bindings: Bindings }>();
+const DUMMY_HASH = "pbkdf2$120000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 
 authRoutes.get("/ping", (c) => c.json({ ok: true }));
 
@@ -21,12 +23,14 @@ authRoutes.post("/login", async (c) => {
 
   const { username, password } = parsed.data;
   const user = await c.env.DB.prepare(
-    "SELECT id, role FROM users WHERE username = ? AND password_hash = ? LIMIT 1"
+    "SELECT id, role, password_hash FROM users WHERE username = ? LIMIT 1"
   )
-    .bind(username, password)
-    .first<{ id: string; role: "student" | "teacher" | "admin" }>();
+    .bind(username)
+    .first<{ id: string; role: "student" | "teacher" | "admin"; password_hash: string }>();
 
-  if (!user) {
+  const passwordHash = user?.password_hash ?? DUMMY_HASH;
+  const passwordMatched = await verifyPassword(password, passwordHash);
+  if (!user || !passwordMatched) {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
