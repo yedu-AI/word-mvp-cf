@@ -190,14 +190,14 @@ export async function fetchReadingTask(token: string): Promise<ReadingTask | nul
   return normalizeReadingTask(payload.task);
 }
 
-export async function generateReadingTask(token: string): Promise<ReadingTask | null> {
+export async function generateReadingTask(token: string, forceRegenerate = false): Promise<ReadingTask | null> {
   const res = await fetch(`${API_BASE}/api/reading/generate`, {
     method: "POST",
     headers: {
       ...authHeaders(token),
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({})
+    body: JSON.stringify({ forceRegenerate })
   });
 
   if (res.status === 404) return null;

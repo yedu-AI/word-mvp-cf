@@ -13,6 +13,18 @@ function feedbackLabel(result: FeedbackResult): string {
   return "不认识";
 }
 
+function splitExample(example: string | null): { en: string; cn: string } {
+  if (!example) {
+    return { en: "No example available.", cn: "暂无例句翻译" };
+  }
+  const normalized = example.replace(/\r?\n/g, " ").trim();
+  const parts = normalized.split("||").map((item) => item.trim());
+  if (parts.length >= 2 && parts[0] && parts[1]) {
+    return { en: parts[0], cn: parts[1] };
+  }
+  return { en: normalized, cn: "暂无例句翻译" };
+}
+
 export default function StudyPage(props: StudyPageProps) {
   const queue = useMemo<Array<TaskWord & { phase: "review" | "new" }>>(() => {
     if (!props.task) return [];
@@ -27,6 +39,7 @@ export default function StudyPage(props: StudyPageProps) {
   const [feedbackMap, setFeedbackMap] = useState<Record<number, FeedbackResult>>({});
   const [submitting, setSubmitting] = useState(false);
   const card = queue[index] ?? null;
+  const example = splitExample(card?.example ?? null);
 
   useEffect(() => {
     setIndex(0);
@@ -91,7 +104,10 @@ export default function StudyPage(props: StudyPageProps) {
           </div>
           <div className="card-side card-back">
             <h2 className="meaning">{card?.cnMeaning}</h2>
-            <p className="example-line">{card?.example ?? "No example available."}</p>
+            <div className="example-box">
+              <p className="example-en">{example.en}</p>
+              <p className="example-cn">{example.cn}</p>
+            </div>
             <p className="tap-hint">点击翻回单词</p>
           </div>
         </article>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchReadingTask, generateReadingTask, submitQuiz } from "../lib/api";
 import { buildFallbackReading, gradeFallbackQuiz } from "../lib/reading-fallback";
 import type { QuizResult, ReadingTask, TodayTask } from "../types";
@@ -14,40 +14,89 @@ export default function ReadingPage(props: ReadingPageProps) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [message, setMessage] = useState("点击生成今日阅读");
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenProgress, setRegenProgress] = useState(0);
+  const regenTimerRef = useRef<number | null>(null);
 
   const seedWords = useMemo(() => {
     if (!props.task) return [];
     return [...props.task.reviewQueue, ...props.task.newQueue];
   }, [props.task]);
 
+  function clearProgressTimer() {
+    if (regenTimerRef.current !== null) {
+      window.clearInterval(regenTimerRef.current);
+      regenTimerRef.current = null;
+    }
+  }
+
+  function startProgress() {
+    clearProgressTimer();
+    setRegenerating(true);
+    setRegenProgress(6);
+    regenTimerRef.current = window.setInterval(() => {
+      setRegenProgress((prev) => {
+        if (prev >= 92) return prev;
+        const next = prev + (prev < 40 ? 9 : prev < 75 ? 5 : 2);
+        return Math.min(next, 92);
+      });
+    }, 240);
+  }
+
+  async function finishProgressAndReload() {
+    clearProgressTimer();
+    setRegenProgress(100);
+    setMessage("重新生成完成，页面刷新中...");
+    await new Promise((resolve) => window.setTimeout(resolve, 420));
+    window.location.reload();
+  }
+
   async function loadReading(forceGenerate: boolean) {
     setLoading(true);
     setResult(null);
     setAnswers({});
+    if (forceGenerate) {
+      startProgress();
+    }
+
     try {
-      let task = !forceGenerate ? await fetchReadingTask(props.token) : null;
-      if (!task) {
-        task = await generateReadingTask(props.token);
+      let nextTask = !forceGenerate ? await fetchReadingTask(props.token) : null;
+      if (!nextTask) {
+        nextTask = await generateReadingTask(props.token, forceGenerate);
       }
-      if (!task) {
-        task = buildFallbackReading(seedWords, props.task?.date);
+      if (!nextTask) {
+        nextTask = buildFallbackReading(seedWords, props.task?.date);
         setMessage("已使用本地兜底阅读内容（后端阅读接口未就绪）");
       } else {
-        setMessage(task.source === "api" ? "阅读内容来自后端接口" : "阅读内容来自本地兜底");
+        setMessage(nextTask.source === "api" ? "阅读内容来自后端接口" : "阅读内容来自本地兜底");
       }
-      setReading(task);
+      setReading(nextTask);
+
+      if (forceGenerate) {
+        await finishProgressAndReload();
+        return;
+      }
     } catch (error) {
       const fallback = buildFallbackReading(seedWords, props.task?.date);
       setReading(fallback);
       setMessage(error instanceof Error ? `接口失败，已切换兜底：${error.message}` : "接口失败，已切换兜底阅读");
+      clearProgressTimer();
+      setRegenerating(false);
+      setRegenProgress(0);
     } finally {
       setLoading(false);
+      if (!forceGenerate) {
+        clearProgressTimer();
+        setRegenerating(false);
+        setRegenProgress(0);
+      }
     }
   }
 
   useEffect(() => {
     if (!props.task) return;
     void loadReading(false);
+    return () => clearProgressTimer();
   }, [props.task?.date]);
 
   async function handleSubmit() {
@@ -95,11 +144,20 @@ export default function ReadingPage(props: ReadingPageProps) {
     <section className="reading-screen">
       <header className="reading-head">
         <h2>今日阅读测验</h2>
-        <button className="ghost-btn" onClick={() => void loadReading(true)} disabled={loading}>
-          {loading ? "生成中..." : "重新生成"}
+        <button className="ghost-btn" onClick={() => void loadReading(true)} disabled={loading || regenerating}>
+          {regenerating ? "生成中..." : "重新生成"}
         </button>
       </header>
       <p className="subtle">{message}</p>
+
+      {regenerating && (
+        <section className="generate-progress" aria-live="polite">
+          <div className="generate-progress-track">
+            <span className="generate-progress-fill" style={{ width: `${regenProgress}%` }} />
+          </div>
+          <p className="generate-progress-label">生成进度 {regenProgress}%</p>
+        </section>
+      )}
 
       {reading && (
         <>

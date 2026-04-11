@@ -294,7 +294,6 @@ input:focus {
   width: 100%;
   margin: 0 auto;
   perspective: 1200px;
-  animation: breathe 4.6s ease-in-out infinite;
 }
 
 .word-card {
@@ -350,30 +349,30 @@ input:focus {
   font-size: clamp(1.32rem, 3.4vw, 1.95rem);
 }
 
-.example-line {
-  margin: 0;
+.example-box {
   width: min(620px, 100%);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 14px 16px;
   background: #f2f4f8;
-  color: #4a5268;
+  border: 1px solid #e5e9f2;
   text-align: left;
+  display: grid;
+  gap: 6px;
+}
+
+.example-en {
+  margin: 0;
+  color: #404a63;
   line-height: 1.7;
   font-size: 1.02rem;
   font-family: "New York", "Iowan Old Style", "Noto Serif SC", "Songti SC", serif;
 }
 
-.example-line::before,
-.example-line::after {
-  color: #8590ac;
-}
-
-.example-line::before {
-  content: "\"";
-}
-
-.example-line::after {
-  content: "\"";
+.example-cn {
+  margin: 0;
+  color: #68708a;
+  line-height: 1.62;
+  font-size: 0.92rem;
 }
 
 .card-back {
@@ -514,26 +513,43 @@ input:focus {
   gap: 12px;
 }
 
+.generate-progress {
+  display: grid;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.generate-progress-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #e1e7f5;
+  overflow: hidden;
+}
+
+.generate-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #4881fb 0%, #2f6cf3 100%);
+  transition: width 220ms ease;
+}
+
+.generate-progress-label {
+  margin: 0;
+  color: #4d5674;
+  font-size: 0.9rem;
+}
+
 .result-text {
   color: #2a58c0;
   font-weight: 620;
 }
 
-@keyframes breathe {
-  0%,
-  100% {
-    transform: translateY(0) scale(1);
-  }
-  50% {
-    transform: translateY(-4px) scale(1.004);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .word-card-wrap {
-    animation: none;
-  }
-
   .word-card,
   .ghost-btn,
   .primary-btn,

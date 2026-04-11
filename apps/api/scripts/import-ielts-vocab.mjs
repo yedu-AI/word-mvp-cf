@@ -28,14 +28,17 @@ function cleanText(input) {
     .trim();
 }
 
-function pickMeaning(entry) {
+function pickMeaningWithPos(entry) {
   const trans = entry?.content?.word?.content?.trans;
   if (!Array.isArray(trans) || trans.length === 0) return "";
   const first = trans[0] ?? {};
+  const pos = cleanText(first.pos || first.posCn || "");
   const cn = cleanText(first.tranCn);
   const en = cleanText(first.tranOther);
-  if (cn) return cn;
-  return en;
+  const base = cn || en;
+  if (!base) return "";
+  if (!pos) return base;
+  return `${pos} ${base}`;
 }
 
 function pickExample(entry) {
@@ -43,7 +46,16 @@ function pickExample(entry) {
   if (!Array.isArray(list) || list.length === 0) return "";
   for (const item of list) {
     const sentence = cleanText(item?.sContent);
-    if (sentence) return sentence;
+    if (!sentence) continue;
+    const cn =
+      cleanText(item?.sCn) ||
+      cleanText(item?.sCnContent) ||
+      cleanText(item?.sContentCn) ||
+      cleanText(item?.tranCn);
+    if (cn) {
+      return `${sentence} || ${cn}`;
+    }
+    return sentence;
   }
   return "";
 }
@@ -85,7 +97,7 @@ function toWordRows(records) {
   for (const item of records) {
     const word = cleanText(item?.headWord || item?.content?.word?.wordHead).toLowerCase();
     if (!word || !/^[a-z][a-z' -]{1,40}$/.test(word)) continue;
-    const cnMeaning = pickMeaning(item);
+    const cnMeaning = pickMeaningWithPos(item);
     const example = pickExample(item);
     const phonetic = pickPhonetic(item);
     const unit = cleanText(item?.bookId || "IELTS");
@@ -94,7 +106,7 @@ function toWordRows(records) {
       word,
       phonetic,
       cnMeaning: cnMeaning || "IELTS vocabulary",
-      example: example || `The word "${word}" appears in IELTS reading passages.`,
+      example: example || `The word "${word}" appears in IELTS reading passages. || 单词“${word}”常出现在雅思阅读文章中。`,
       level: "IELTS",
       unit
     });
@@ -111,9 +123,18 @@ function buildImportSql(rows) {
   const lines = [];
   for (const row of rows) {
     lines.push(
+      `UPDATE words
+SET phonetic='${escapeSql(row.phonetic)}',
+    cn_meaning='${escapeSql(row.cnMeaning)}',
+    example='${escapeSql(row.example)}',
+    level='${escapeSql(row.level)}',
+    unit='${escapeSql(row.unit)}'
+WHERE lower(word)=lower('${escapeSql(row.word)}');`
+    );
+    lines.push(
       `INSERT INTO words (word, phonetic, cn_meaning, example, level, unit)
 SELECT '${escapeSql(row.word)}', '${escapeSql(row.phonetic)}', '${escapeSql(row.cnMeaning)}', '${escapeSql(row.example)}', '${escapeSql(row.level)}', '${escapeSql(row.unit)}'
-WHERE NOT EXISTS (SELECT 1 FROM words WHERE lower(word) = lower('${escapeSql(row.word)}'));`
+WHERE NOT EXISTS (SELECT 1 FROM words WHERE lower(word)=lower('${escapeSql(row.word)}'));`
     );
   }
   return lines.join("\n");
