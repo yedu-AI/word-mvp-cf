@@ -351,17 +351,28 @@ async function generateByAi(
   allTargetWords: WordItem[]
 ): Promise<{ text: string } | { failure: AiFailure }> {
   const dynamicEnv = env as Bindings & Record<string, unknown>;
-  const apiKey = typeof dynamicEnv.AI_API_KEY === "string" ? dynamicEnv.AI_API_KEY : "";
+  const apiKey =
+    typeof dynamicEnv.DEEPSEEK_API_KEY === "string" && dynamicEnv.DEEPSEEK_API_KEY
+      ? dynamicEnv.DEEPSEEK_API_KEY
+      : typeof dynamicEnv.AI_API_KEY === "string"
+        ? dynamicEnv.AI_API_KEY
+        : "";
   if (!apiKey) {
-    return { failure: { code: "AI_NOT_CONFIGURED", message: "AI_API_KEY is missing." } };
+    return { failure: { code: "AI_NOT_CONFIGURED", message: "DEEPSEEK_API_KEY (or AI_API_KEY) is missing." } };
   }
 
   const baseUrl =
-    typeof dynamicEnv.AI_BASE_URL === "string" && dynamicEnv.AI_BASE_URL
-      ? dynamicEnv.AI_BASE_URL
-      : "https://api.openai.com/v1/chat/completions";
+    typeof dynamicEnv.DEEPSEEK_BASE_URL === "string" && dynamicEnv.DEEPSEEK_BASE_URL
+      ? dynamicEnv.DEEPSEEK_BASE_URL
+      : typeof dynamicEnv.AI_BASE_URL === "string" && dynamicEnv.AI_BASE_URL
+        ? dynamicEnv.AI_BASE_URL
+        : "https://api.deepseek.com/chat/completions";
   const model =
-    typeof dynamicEnv.AI_MODEL === "string" && dynamicEnv.AI_MODEL ? dynamicEnv.AI_MODEL : "gpt-4o-mini";
+    typeof dynamicEnv.DEEPSEEK_MODEL === "string" && dynamicEnv.DEEPSEEK_MODEL
+      ? dynamicEnv.DEEPSEEK_MODEL
+      : typeof dynamicEnv.AI_MODEL === "string" && dynamicEnv.AI_MODEL
+        ? dynamicEnv.AI_MODEL
+        : "deepseek-chat";
 
   const included = includedWords.map((item) => item.word).join(", ");
   const allTargets = allTargetWords.map((item) => item.word).join(", ");

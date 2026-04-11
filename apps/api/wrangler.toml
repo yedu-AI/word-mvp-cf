@@ -2,6 +2,10 @@
 main = "src/index.ts"
 compatibility_date = "2026-04-07"
 
+[vars]
+DEEPSEEK_BASE_URL = "https://api.deepseek.com/chat/completions"
+DEEPSEEK_MODEL = "deepseek-chat"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "word_mvp"

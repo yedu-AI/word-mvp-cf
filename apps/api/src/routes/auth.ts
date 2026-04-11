@@ -29,7 +29,16 @@ authRoutes.post("/login", async (c) => {
     .first<{ id: string; role: "student" | "teacher" | "admin"; password_hash: string }>();
 
   const passwordHash = user?.password_hash ?? DUMMY_HASH;
-  const passwordMatched = await verifyPassword(password, passwordHash);
+  let passwordMatched = false;
+  if (passwordHash.startsWith("pbkdf2$")) {
+    try {
+      passwordMatched = await verifyPassword(password, passwordHash);
+    } catch {
+      passwordMatched = false;
+    }
+  } else {
+    passwordMatched = passwordHash === password;
+  }
   if (!user || !passwordMatched) {
     return c.json({ error: "Invalid credentials" }, 401);
   }

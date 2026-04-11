@@ -27,3 +27,21 @@
    - Root directory: `/`
 4. Environment variable:
    - `VITE_API_BASE`: your Worker API URL
+
+## IELTS Vocabulary Pack
+- Source: `kajweb/dict` public repository IELTS books (`IELTS_2`, `IELTS_3`)
+- Import to local D1:
+  - `npm run words:import:ielts:local -w @word-mvp/api`
+- Import to remote D1:
+  - `npm run words:import:ielts:remote -w @word-mvp/api`
+
+## DeepSeek For Reading Generation
+The reading generator (`/api/reading/generate`) now defaults to DeepSeek:
+- `DEEPSEEK_BASE_URL=https://api.deepseek.com/chat/completions`
+- `DEEPSEEK_MODEL=deepseek-chat`
+
+Set secret once:
+```powershell
+cd apps/api
+"<YOUR_DEEPSEEK_API_KEY>" | npx wrangler secret put DEEPSEEK_API_KEY
+```

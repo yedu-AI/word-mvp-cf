@@ -8,6 +8,8 @@
     "deploy": "wrangler deploy --config wrangler.toml",
     "typecheck": "tsc --noEmit",
     "password:hash": "node ./scripts/hash-password.mjs",
+    "words:import:ielts:local": "node ./scripts/import-ielts-vocab.mjs --local",
+    "words:import:ielts:remote": "node ./scripts/import-ielts-vocab.mjs --remote",
     "verify:auth": "node ./scripts/verify-auth.mjs",
     "drizzle:generate": "drizzle-kit generate",
     "drizzle:migrate:local": "wrangler d1 migrations apply word_mvp --local",
@@ -21,6 +23,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260403.0",
     "@types/node": "^24.5.2",
+    "adm-zip": "^0.5.16",
     "drizzle-kit": "^0.31.6",
     "typescript": "^5.9.3",
     "wrangler": "^4.39.0"
